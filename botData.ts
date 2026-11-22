@@ -144,16 +144,18 @@ export const COUNTRIES: CountrySpec[] = [
       'Voice/SMS-enabled virtual lines in Japan require strict identity verification under telecom rules.',
   },
   {
-    code: 'BR',
-    name: 'Brazil',
-    flag: '🇧🇷',
-    dialCode: '+55',
-    region: 'Latin America',
-    e164Example: '+5511912345678',
-    digitsHint: '11 digits after +55 (2-digit DDD + 9-digit mobile)',
-    authorizedProviders: ['Zenvia', 'Twilio BR', 'Infobip', 'BR Carrier SIM'],
+      {
+    code: 'NG',
+    name: 'Nigeria',
+    flag: '🇳🇬',
+    dialCode: '+234',
+    region: 'Africa',
+    e164Example: '+2348012345678',
+    digitsHint: '10 digits after +234 (drop leading 0)',
+    authorizedProviders: ['Nigerian Mobile Carrier SIM'],
     complianceNote:
-      'Anatel regulations apply to virtual numbers; always include the 2-digit area code (DDD) in E.164 format.',
+      'Use only a Nigerian number you own or are authorized to manage.',
+  },
   },
 ];
 

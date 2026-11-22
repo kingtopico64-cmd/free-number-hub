@@ -1,8 +1,16 @@
+
 import crypto from 'node:crypto';
 import {COUNTRIES} from './botData.ts';
 import type {AuthorizedNumberRecord, RegistrationStep, UserSessionState} from './types.ts';
 
 const E164_REGEX = /^\+[1-9]\d{6,14}$/;
+
+export interface DemoSmsRecord {
+  id: string;
+  sender: string;
+  message: string;
+  receivedAt: string;
+}
 
 export function validateE164PhoneNumber(
   raw: string,
@@ -34,6 +42,7 @@ export function validateE164PhoneNumber(
 
 export class BotAccountStore {
   private readonly sessions = new Map<number, UserSessionState>();
+  private readonly demoMessages = new Map<number, DemoSmsRecord[]>();
 
   getOrCreateSession(userId: number, firstName = 'User', username?: string): UserSessionState {
     const existing = this.sessions.get(userId);
@@ -57,6 +66,35 @@ export class BotAccountStore {
     };
     this.sessions.set(userId, created);
     return created;
+  }
+
+  addDemoSms(
+    userId: number,
+    sender: string,
+    message: string,
+  ): DemoSmsRecord {
+    this.getOrCreateSession(userId);
+
+    const record: DemoSmsRecord = {
+      id: crypto.randomUUID().slice(0, 8),
+      sender: sender.trim().slice(0, 80) || 'Demo Sender',
+      message: message.trim().slice(0, 500) || 'Demo notification',
+      receivedAt: new Date().toISOString(),
+    };
+
+    const history = this.demoMessages.get(userId) ?? [];
+    history.unshift(record);
+    this.demoMessages.set(userId, history.slice(0, 50));
+
+    return record;
+  }
+
+  listDemoSms(userId: number): DemoSmsRecord[] {
+    return [...(this.demoMessages.get(userId) ?? [])];
+  }
+
+  clearDemoSms(userId: number): void {
+    this.demoMessages.delete(userId);
   }
 
   setRegistrationState(
@@ -151,5 +189,6 @@ export class BotAccountStore {
 
   resetUserSession(userId: number): void {
     this.sessions.delete(userId);
+    this.demoMessages.delete(userId);
   }
 }

@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -12,13 +13,23 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Show repository files
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 3 -name package.json
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Install dependencies
         run: npm install
+
       - name: Type-check TypeScript
         run: npm run lint
+
       - name: Build production bundle
         run: npm run build

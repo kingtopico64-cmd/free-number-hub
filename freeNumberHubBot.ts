@@ -1,3 +1,4 @@
+
 import {
   BOT_BUTTONS,
   COUNTRIES,
@@ -26,11 +27,12 @@ function buildCountriesInlineKeyboard(page = 0): InlineKeyboardMarkup {
   const rows = [];
 
   for (let i = 0; i < slice.length; i += 2) {
-    const pair = slice.slice(i, i + 2).map((country) => ({
-      text: `${country.flag} ${country.name} (${country.dialCode})`,
-      callback_data: `country:${country.code}`,
-    }));
-    rows.push(pair);
+    rows.push(
+      slice.slice(i, i + 2).map((country) => ({
+        text: `${country.flag} ${country.name} (${country.dialCode})`,
+        callback_data: `country:${country.code}`,
+      })),
+    );
   }
 
   const navRow = [];
@@ -40,9 +42,7 @@ function buildCountriesInlineKeyboard(page = 0): InlineKeyboardMarkup {
   if (start + pageSize < COUNTRIES.length) {
     navRow.push({text: 'Next ➡️', callback_data: `countries_page:${page + 1}`});
   }
-  if (navRow.length > 0) {
-    rows.push(navRow);
-  }
+  if (navRow.length > 0) rows.push(navRow);
 
   rows.push([{text: '➕ Register My Own Number', callback_data: 'account:add'}]);
 
@@ -53,13 +53,13 @@ function buildWelcomeMessage(firstName: string): string {
   return [
     `👋 <b>Welcome to Free Number Hub, ${escapeHtml(firstName)}!</b>`,
     '',
-    'A clean, privacy-first hub to organize and route SMS alerts from <b>phone numbers that you own or are explicitly authorized to use</b>.',
+    'A privacy-first hub for organizing SMS alerts from phone numbers you own or are authorized to manage.',
     '',
-    '<b>Policy &amp; Privacy Guardrails:</b>',
-    '• Only register numbers you legally own or control (personal SIMs, company lines, or your own VoIP/QA accounts).',
-    '• We never collect, scrape, or share other people’s private verification codes.',
+    '<b>Privacy rules:</b>',
+    '• Only register numbers you own or are authorized to manage.',
+    '• Never use this bot to collect or share other people’s private verification codes.',
     '',
-    'Tap any button on your mobile keyboard below or use <code>/help</code> to explore commands.',
+    'Tap a menu button below or send <code>/help</code>.',
   ].join('\n');
 }
 
@@ -76,7 +76,7 @@ function buildCountriesOverviewText(page = 0): string {
     '',
     ...lines,
     '',
-    'Tap a country below to view its E.164 format, compatible authorized carriers, and compliance notes.',
+    'Tap a country to view its number format and authorized provider information.',
   ].join('\n');
 }
 
@@ -86,13 +86,11 @@ function buildServicesOverviewText(): string {
   );
 
   return [
-    '📱 <b>Legitimate SMS Services &amp; Use Cases</b>',
+    '📱 <b>Legitimate SMS Services</b>',
     '',
     ...lines,
     '',
-    '⚠️ <i>Strictly Authorized Lines Only: Free Number Hub never provides shared public inboxes or third-party OTP interception.</i>',
-    '',
-    'Select a service below for step-by-step setup instructions:',
+    '⚠️ Only use numbers you own or are authorized to manage.',
   ].join('\n');
 }
 
@@ -117,13 +115,11 @@ function buildAccountOverview(store: BotAccountStore, userId: number): {
   const listPreview =
     numbers.length === 0
       ? '<i>No authorized numbers registered yet.</i>'
-      : numbers
-          .map((item) => {
-            const country = COUNTRIES.find((c) => c.code === item.countryCode);
-            const flag = country ? country.flag : '📞';
-            return `• ${flag} <code>${escapeHtml(item.phoneNumber)}</code> — ${escapeHtml(item.label)} (Owner Verified)`;
-          })
-          .join('\n');
+      : numbers.map((item) => {
+          const country = COUNTRIES.find((c) => c.code === item.countryCode);
+          const flag = country ? country.flag : '📞';
+          return `• ${flag} <code>${escapeHtml(item.phoneNumber)}</code> — ${escapeHtml(item.label)}`;
+        }).join('\n');
 
   const text = [
     '👤 <b>My Account</b>',
@@ -132,46 +128,42 @@ function buildAccountOverview(store: BotAccountStore, userId: number): {
     `<b>Telegram User ID:</b> <code>${userId}</code>`,
     `<b>Authorized Numbers:</b> ${numbers.length} / 10`,
     '',
-    '<b>Your Registered Own Numbers:</b>',
+    '<b>Your Registered Numbers:</b>',
     listPreview,
     '',
-    '<i>Every number stays isolated to your private Telegram User ID and requires ownership attestation.</i>',
+    '<i>Ownership is based on your attestation; it is not independently verified.</i>',
   ].join('\n');
-
-  const inlineRows = [
-    [
-      {text: '➕ Register Own Number', callback_data: 'account:add'},
-      {text: '📋 Manage Numbers', callback_data: 'account:list'},
-    ],
-    [{text: '🔗 Personal Webhook Guide', callback_data: 'account:webhook'}],
-  ];
 
   return {
     text,
-    replyMarkup: {inline_keyboard: inlineRows},
+    replyMarkup: {
+      inline_keyboard: [
+        [
+          {text: '➕ Register Own Number', callback_data: 'account:add'},
+          {text: '📋 Manage Numbers', callback_data: 'account:list'},
+        ],
+        [{text: '📥 Demo SMS Inbox', callback_data: 'sms:demo'}],
+      ],
+    },
   };
 }
 
 function buildHelpText(): string {
   return [
-    '💬 <b>Free Number Hub — Help &amp; Instructions</b>',
+    '💬 <b>Free Number Hub — Help</b>',
     '',
-    '<b>Quick Start (3 Steps):</b>',
-    '1. Tap <b>🌍 Countries</b> to check E.164 formatting for your region.',
-    '2. Tap <b>👤 My Account</b> or send <code>/addnumber</code> to register a phone number you own or are authorized to manage.',
-    '3. Connect your personal VoIP/SIM webhook exclusively to your own private Telegram chat.',
+    '<b>Commands:</b>',
+    '• <code>/start</code> — Open the bot',
+    '• <code>/countries</code> — Browse countries',
+    '• <code>/services</code> — View SMS services',
+    '• <code>/account</code> — View your account',
+    '• <code>/addnumber</code> — Register your own number',
+    '• <code>/demo</code> — View sample SMS messages',
+    '• <code>/help</code> — Show this help',
+    '• <code>/about</code> — About this bot',
+    '• <code>/cancel</code> — Cancel registration',
     '',
-    '<b>Available Commands:</b>',
-    '• <code>/start</code> — Welcome &amp; mobile menu keyboard',
-    '• <code>/countries</code> — Browse supported countries &amp; dialing rules',
-    '• <code>/services</code> — Legitimate SMS automation &amp; forwarding guides',
-    '• <code>/account</code> — View your Telegram ID &amp; authorized numbers',
-    '• <code>/addnumber</code> — Guided setup to register your own number',
-    '• <code>/help</code> — Show this help guide',
-    '• <code>/about</code> — Mission, privacy, and ownership policy',
-    '',
-    '<b>Privacy Guarantee:</b>',
-    'We never ask for your Telegram password, never share numbers across users, and never collect third-party verification codes.',
+    '<b>Important:</b> Demo messages are examples only. Real SMS delivery requires an authorized SMS source.',
   ].join('\n');
 }
 
@@ -179,13 +171,37 @@ function buildAboutText(): string {
   return [
     'ℹ️ <b>About Free Number Hub</b>',
     '',
-    'Free Number Hub is a developer-friendly, privacy-first Telegram bot built to help individuals, QA engineers, and support teams manage <b>their own authorized phone numbers</b> cleanly on mobile.',
+    'A privacy-first Telegram bot for organizing your own authorized phone numbers and SMS notification tests.',
     '',
-    '<b>Core Principles:</b>',
-    '• <b>Ownership First:</b> Only numbers owned or formally authorized by you may be registered.',
-    '• <b>Zero Shared Codes:</b> Private OTPs and verification texts are never pooled, scraped, or exposed.',
-    '• <b>Secure Token Storage:</b> Your Telegram bot token lives strictly on the server via environment variables.',
-    '• <b>Portable Architecture:</b> Runs cleanly on Node.js 22+ with free or low-cost hosting (Render, Railway, Fly.io, Koyeb).',
+    '• Numbers are registered under individual Telegram accounts.',
+    '• Demo SMS messages are simulated.',
+    '• Real SMS delivery requires an authorized provider or phone connection.',
+    '• Never share your Telegram bot token.',
+  ].join('\n');
+}
+
+function buildDemoSmsMessage(): string {
+  return [
+    '📥 <b>Demo SMS Inbox</b>',
+    '',
+    '<i>These are simulated examples, not real received messages.</i>',
+    '',
+    '━━━━━━━━━━━━━━',
+    '📩 <b>Sample message 1</b>',
+    '<b>Sender:</b> Demo Service',
+    '<b>Message:</b> Your sample notification has been received successfully.',
+    '<b>Status:</b> Demo only',
+    '',
+    '━━━━━━━━━━━━━━',
+    '📩 <b>Sample message 2</b>',
+    '<b>Sender:</b> Test Alert',
+    '<b>Message:</b> This is a test notification for your Free Number Hub inbox.',
+    '<b>Status:</b> Demo only',
+    '',
+    '━━━━━━━━━━━━━━',
+    '✅ Your demo inbox is working.',
+    '',
+    'Real SMS messages are not connected yet.',
   ].join('\n');
 }
 
@@ -198,9 +214,7 @@ export function handleBotUpdate(
   }
 
   const message = update.message;
-  if (!message || !message.text) {
-    return [];
-  }
+  if (!message || !message.text) return [];
 
   const chatId = message.chat.id;
   const userId = message.from?.id ?? chatId;
@@ -210,7 +224,6 @@ export function handleBotUpdate(
 
   const session = store.getOrCreateSession(userId, firstName, username);
 
-  // Allow slash commands or main menu buttons to interrupt an active registration flow cleanly.
   const isGlobalMenuTrigger =
     text.startsWith('/') ||
     text === BOT_BUTTONS.COUNTRIES ||
@@ -227,9 +240,9 @@ export function handleBotUpdate(
     return handleRegistrationStepInput(chatId, userId, text, store);
   }
 
-  const normalizedCommand = text.split(/\s+/)[0].split('@')[0].toLowerCase();
+  const command = text.split(/\s+/)[0].split('@')[0].toLowerCase();
 
-  if (normalizedCommand === '/start') {
+  if (command === '/start') {
     return [
       {
         type: 'sendMessage',
@@ -244,7 +257,7 @@ export function handleBotUpdate(
         type: 'sendMessage',
         payload: {
           chat_id: chatId,
-          text: 'Choose a quick action to get started:',
+          text: 'Choose an action:',
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
@@ -252,7 +265,7 @@ export function handleBotUpdate(
                 {text: '🌍 Explore Countries', callback_data: 'countries_page:0'},
                 {text: '➕ Register My Number', callback_data: 'account:add'},
               ],
-              [{text: '📱 Legitimate SMS Guide', callback_data: 'services:overview'}],
+              [{text: '📥 Demo SMS Inbox', callback_data: 'sms:demo'}],
             ],
           },
         },
@@ -260,131 +273,125 @@ export function handleBotUpdate(
     ];
   }
 
-  if (normalizedCommand === '/countries' || text === BOT_BUTTONS.COUNTRIES) {
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: buildCountriesOverviewText(0),
-          parse_mode: 'HTML',
-          reply_markup: buildCountriesInlineKeyboard(0),
-        },
-      },
-    ];
-  }
-
-  if (normalizedCommand === '/services' || text === BOT_BUTTONS.SMS_SERVICES) {
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: buildServicesOverviewText(),
-          parse_mode: 'HTML',
-          reply_markup: buildServicesInlineKeyboard(),
-        },
-      },
-    ];
-  }
-
-  if (normalizedCommand === '/account' || text === BOT_BUTTONS.MY_ACCOUNT) {
-    const account = buildAccountOverview(store, userId);
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: account.text,
-          parse_mode: 'HTML',
-          reply_markup: account.replyMarkup,
-        },
-      },
-    ];
-  }
-
-  if (normalizedCommand === '/addnumber') {
-    return [startAddNumberPrompt(chatId, store, userId)];
-  }
-
-  if (normalizedCommand === '/help' || text === BOT_BUTTONS.HELP) {
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: buildHelpText(),
-          parse_mode: 'HTML',
-          reply_markup: MAIN_REPLY_KEYBOARD,
-        },
-      },
-    ];
-  }
-
-  if (normalizedCommand === '/about' || text === BOT_BUTTONS.ABOUT_US) {
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: buildAboutText(),
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {text: '📱 SMS Services', callback_data: 'services:overview'},
-                {text: '👤 My Account', callback_data: 'account:overview'},
-              ],
-            ],
-          },
-        },
-      },
-    ];
-  }
-
-  if (normalizedCommand === '/cancel') {
-    store.setRegistrationState(userId, 'idle');
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: 'Action cancelled. Select any option from the keyboard below.',
-          parse_mode: 'HTML',
-          reply_markup: MAIN_REPLY_KEYBOARD,
-        },
-      },
-    ];
-  }
-
-  return [
-    {
+  if (command === '/demo' || command === '/inbox') {
+    return [{
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: [
-          `I didn’t recognize <code>${escapeHtml(text)}</code>.`,
-          '',
-          'Please use one of the 5 menu buttons below or send <code>/help</code> to see all commands.',
-        ].join('\n'),
+        text: buildDemoSmsMessage(),
+        parse_mode: 'HTML',
+      },
+    }];
+  }
+
+  if (command === '/countries' || text === BOT_BUTTONS.COUNTRIES) {
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: buildCountriesOverviewText(0),
+        parse_mode: 'HTML',
+        reply_markup: buildCountriesInlineKeyboard(0),
+      },
+    }];
+  }
+
+  if (command === '/services' || text === BOT_BUTTONS.SMS_SERVICES) {
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: buildServicesOverviewText(),
+        parse_mode: 'HTML',
+        reply_markup: buildServicesInlineKeyboard(),
+      },
+    }];
+  }
+
+  if (command === '/account' || text === BOT_BUTTONS.MY_ACCOUNT) {
+    const account = buildAccountOverview(store, userId);
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: account.text,
+        parse_mode: 'HTML',
+        reply_markup: account.replyMarkup,
+      },
+    }];
+  }
+
+  if (command === '/addnumber') {
+    return [startAddNumberPrompt(chatId, store, userId)];
+  }
+
+  if (command === '/help' || text === BOT_BUTTONS.HELP) {
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: buildHelpText(),
         parse_mode: 'HTML',
         reply_markup: MAIN_REPLY_KEYBOARD,
       },
+    }];
+  }
+
+  if (command === '/about' || text === BOT_BUTTONS.ABOUT_US) {
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: buildAboutText(),
+        parse_mode: 'HTML',
+        reply_markup: MAIN_REPLY_KEYBOARD,
+      },
+    }];
+  }
+
+  if (command === '/cancel') {
+    store.setRegistrationState(userId, 'idle');
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: 'Action cancelled.',
+        parse_mode: 'HTML',
+        reply_markup: MAIN_REPLY_KEYBOARD,
+      },
+    }];
+  }
+
+  return [{
+    type: 'sendMessage',
+    payload: {
+      chat_id: chatId,
+      text: [
+        `I didn’t recognize <code>${escapeHtml(text)}</code>.`,
+        '',
+        'Use the menu buttons or send <code>/help</code>.',
+      ].join('\n'),
+      parse_mode: 'HTML',
+      reply_markup: MAIN_REPLY_KEYBOARD,
     },
-  ];
+  }];
 }
 
-function startAddNumberPrompt(chatId: number, store: BotAccountStore, userId: number): BotAction {
+function startAddNumberPrompt(
+  chatId: number,
+  store: BotAccountStore,
+  userId: number,
+): BotAction {
   store.setRegistrationState(userId, 'idle');
   const rows = [];
+
   for (let i = 0; i < COUNTRIES.length; i += 2) {
-    rows.push(
-      COUNTRIES.slice(i, i + 2).map((c) => ({
-        text: `${c.flag} ${c.name} (${c.dialCode})`,
-        callback_data: `add_country:${c.code}`,
-      })),
-    );
+    rows.push(COUNTRIES.slice(i, i + 2).map((c) => ({
+      text: `${c.flag} ${c.name} (${c.dialCode})`,
+      callback_data: `add_country:${c.code}`,
+    })));
   }
+
   rows.push([{text: 'Cancel', callback_data: 'account:overview'}]);
 
   return {
@@ -394,9 +401,9 @@ function startAddNumberPrompt(chatId: number, store: BotAccountStore, userId: nu
       text: [
         '➕ <b>Register Your Own Authorized Number</b>',
         '',
-        'Only add a number that <b>you personally own</b> or have explicit written authorization to operate.',
+        'Only add a number you own or are explicitly authorized to manage.',
         '',
-        'Step 1 of 3: Select the country of your number:',
+        'Step 1 of 3: Select its country:',
       ].join('\n'),
       parse_mode: 'HTML',
       reply_markup: {inline_keyboard: rows},
@@ -414,85 +421,75 @@ function handleRegistrationStepInput(
 
   if (session.registrationStep === 'awaiting_number') {
     const check = validateE164PhoneNumber(text, session.pendingCountryCode);
+
     if (!check.valid) {
-      return [
-        {
-          type: 'sendMessage',
-          payload: {
-            chat_id: chatId,
-            text: `⚠️ ${escapeHtml(check.reason ?? 'Invalid number format.')}\n\nSend /cancel to exit.`,
-            parse_mode: 'HTML',
-          },
+      return [{
+        type: 'sendMessage',
+        payload: {
+          chat_id: chatId,
+          text: `⚠️ ${escapeHtml(check.reason ?? 'Invalid number format.')}\n\nSend /cancel to exit.`,
+          parse_mode: 'HTML',
         },
-      ];
+      }];
     }
 
     store.setRegistrationState(userId, 'awaiting_label', {
       pendingPhoneNumber: check.normalized,
     });
 
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: [
-            `✅ Format verified: <code>${escapeHtml(check.normalized)}</code>`,
-            '',
-            'Step 2 of 3: Reply with a short label for your number (for example: <code>Personal Travel SIM</code> or <code>Staging QA Line</code>).',
-          ].join('\n'),
-          parse_mode: 'HTML',
-        },
+    return [{
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: [
+          `✅ Format verified: <code>${escapeHtml(check.normalized)}</code>`,
+          '',
+          'Step 2 of 3: Reply with a short label for your number.',
+        ].join('\n'),
+        parse_mode: 'HTML',
       },
-    ];
+    }];
   }
 
   if (session.registrationStep === 'awaiting_label') {
     const cleanLabel = text.trim().slice(0, 40) || 'My Authorized Line';
+
     store.setRegistrationState(userId, 'awaiting_attestation', {
       pendingLabel: cleanLabel,
     });
 
-    return [
-      {
-        type: 'sendMessage',
-        payload: {
-          chat_id: chatId,
-          text: [
-            '🛡️ <b>Step 3 of 3: Ownership Attestation</b>',
-            '',
-            `<b>Number:</b> <code>${escapeHtml(session.pendingPhoneNumber ?? '')}</code>`,
-            `<b>Label:</b> ${escapeHtml(cleanLabel)}`,
-            '',
-            'Confirm that you own or are explicitly authorized to manage this number, and that you will not use it to collect or share other people’s private verification codes.',
-          ].join('\n'),
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: '✅ I Confirm Ownership & Save',
-                  callback_data: 'add_confirm:yes',
-                },
-              ],
-              [{text: '❌ Cancel Registration', callback_data: 'add_confirm:no'}],
-            ],
-          },
-        },
-      },
-    ];
-  }
-
-  return [
-    {
+    return [{
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: 'Please tap the confirmation button above or send /cancel to start over.',
+        text: [
+          '🛡️ <b>Step 3 of 3: Ownership Attestation</b>',
+          '',
+          `<b>Number:</b> <code>${escapeHtml(session.pendingPhoneNumber ?? '')}</code>`,
+          `<b>Label:</b> ${escapeHtml(cleanLabel)}`,
+          '',
+          'Confirm that you own or are authorized to manage this number.',
+          'Do not use this bot to collect or share other people’s private verification codes.',
+        ].join('\n'),
         parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{text: '✅ I Confirm Ownership & Save', callback_data: 'add_confirm:yes'}],
+            [{text: '❌ Cancel Registration', callback_data: 'add_confirm:no'}],
+          ],
+        },
       },
+    }];
+  }
+
+  return [{
+    type: 'sendMessage',
+    payload: {
+      chat_id: chatId,
+      text: 'Please tap the confirmation button or send /cancel.',
+      parse_mode: 'HTML',
     },
-  ];
+  }];
 }
 
 function handleCallbackQuery(
@@ -500,22 +497,31 @@ function handleCallbackQuery(
   store: BotAccountStore,
 ): BotAction[] {
   const query = update.callback_query;
-  if (!query || !query.data) {
-    return [];
-  }
+  if (!query || !query.data) return [];
 
   const userId = query.from.id;
   const chatId = query.message?.chat.id ?? userId;
-  const firstName = query.from.first_name ?? 'User';
-  store.getOrCreateSession(userId, firstName, query.from.username);
+
+  store.getOrCreateSession(userId, query.from.first_name ?? 'User', query.from.username);
 
   const data = query.data;
-  const actions: BotAction[] = [
-    {
-      type: 'answerCallbackQuery',
-      payload: {callback_query_id: query.id},
-    },
-  ];
+
+  const actions: BotAction[] = [{
+    type: 'answerCallbackQuery',
+    payload: {callback_query_id: query.id},
+  }];
+
+  if (data === 'sms:demo') {
+    actions.push({
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: buildDemoSmsMessage(),
+        parse_mode: 'HTML',
+      },
+    });
+    return actions;
+  }
 
   if (data.startsWith('countries_page:')) {
     const page = Number.parseInt(data.split(':')[1] ?? '0', 10) || 0;
@@ -534,9 +540,7 @@ function handleCallbackQuery(
   if (data.startsWith('country:')) {
     const code = data.split(':')[1];
     const country = COUNTRIES.find((c) => c.code === code);
-    if (!country) {
-      return actions;
-    }
+    if (!country) return actions;
 
     actions.push({
       type: 'sendMessage',
@@ -555,12 +559,7 @@ function handleCallbackQuery(
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [
-              {
-                text: `➕ Register My ${country.code} Number`,
-                callback_data: `add_country:${country.code}`,
-              },
-            ],
+            [{text: `➕ Register My ${country.code} Number`, callback_data: `add_country:${country.code}`}],
             [{text: '⬅️ Back to Countries', callback_data: 'countries_page:0'}],
           ],
         },
@@ -585,9 +584,7 @@ function handleCallbackQuery(
   if (data.startsWith('service:')) {
     const id = data.split(':')[1];
     const svc = SMS_SERVICES.find((s) => s.id === id);
-    if (!svc) {
-      return actions;
-    }
+    if (!svc) return actions;
 
     actions.push({
       type: 'sendMessage',
@@ -638,9 +635,7 @@ function handleCallbackQuery(
   if (data.startsWith('add_country:')) {
     const code = data.split(':')[1];
     const country = COUNTRIES.find((c) => c.code === code);
-    if (!country) {
-      return actions;
-    }
+    if (!country) return actions;
 
     store.setRegistrationState(userId, 'awaiting_number', {
       pendingCountryCode: country.code,
@@ -655,9 +650,9 @@ function handleCallbackQuery(
         text: [
           `${country.flag} <b>Selected: ${escapeHtml(country.name)} (${escapeHtml(country.dialCode)})</b>`,
           '',
-          `Please reply with <b>your own</b> phone number in international E.164 format (example: <code>${escapeHtml(country.e164Example)}</code>).`,
+          `Reply with your own number in E.164 format, for example <code>${escapeHtml(country.e164Example)}</code>.`,
           '',
-          'Send <code>/cancel</code> anytime to abort.',
+          'Send /cancel to abort.',
         ].join('\n'),
         parse_mode: 'HTML',
       },
@@ -667,6 +662,7 @@ function handleCallbackQuery(
 
   if (data === 'add_confirm:yes') {
     const session = store.getOrCreateSession(userId);
+
     if (
       session.registrationStep !== 'awaiting_attestation' ||
       !session.pendingCountryCode ||
@@ -676,7 +672,7 @@ function handleCallbackQuery(
         type: 'sendMessage',
         payload: {
           chat_id: chatId,
-          text: 'No pending number registration found. Tap <b>👤 My Account</b> to start again.',
+          text: 'No pending registration found. Start again from My Account.',
           parse_mode: 'HTML',
         },
       });
@@ -712,9 +708,8 @@ function handleCallbackQuery(
           '',
           `<b>Number:</b> <code>${escapeHtml(result.record.phoneNumber)}</code>`,
           `<b>Label:</b> ${escapeHtml(result.record.label)}`,
-          `<b>Owner ID:</b> <code>${userId}</code>`,
           '',
-          'This number is now listed exclusively under your account.',
+          'This number is listed under your account. Ownership has not been independently verified.',
         ].join('\n'),
         parse_mode: 'HTML',
         reply_markup: {
@@ -731,7 +726,7 @@ function handleCallbackQuery(
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: 'Registration cancelled. No phone number was saved.',
+        text: 'Registration cancelled. No number was saved.',
         parse_mode: 'HTML',
         reply_markup: MAIN_REPLY_KEYBOARD,
       },
@@ -741,12 +736,13 @@ function handleCallbackQuery(
 
   if (data === 'account:list') {
     const numbers = store.listAuthorizedNumbers(userId);
+
     if (numbers.length === 0) {
       actions.push({
         type: 'sendMessage',
         payload: {
           chat_id: chatId,
-          text: '📋 You have no authorized numbers saved yet. Tap below to register a number you own.',
+          text: 'You have no numbers saved yet.',
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [[{text: '➕ Register Own Number', callback_data: 'account:add'}]],
@@ -760,16 +756,14 @@ function handleCallbackQuery(
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: '📋 <b>Manage Your Authorized Numbers</b>\n\nTap any number below to remove it from your account:',
+        text: '📋 <b>Manage Your Authorized Numbers</b>\n\nChoose a number to remove:',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            ...numbers.map((item) => [
-              {
-                text: `🗑️ Remove ${item.phoneNumber} (${item.label})`,
-                callback_data: `account:delete:${item.id}`,
-              },
-            ]),
+            ...numbers.map((item) => [{
+              text: `🗑️ Remove ${item.phoneNumber} (${item.label})`,
+              callback_data: `account:delete:${item.id}`,
+            }]),
             [{text: '⬅️ Back to My Account', callback_data: 'account:overview'}],
           ],
         },
@@ -781,13 +775,12 @@ function handleCallbackQuery(
   if (data.startsWith('account:delete:')) {
     const id = data.split(':')[2] ?? '';
     const removed = store.removeAuthorizedNumber(userId, id);
+
     actions.push({
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: removed
-          ? '🗑️ Number removed from your account.'
-          : 'Number was not found or already removed.',
+        text: removed ? '🗑️ Number removed from your account.' : 'Number was not found.',
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [[{text: '👤 Back to My Account', callback_data: 'account:overview'}]],
@@ -803,18 +796,14 @@ function handleCallbackQuery(
       payload: {
         chat_id: chatId,
         text: [
-          '🔗 <b>Personal Webhook Integration</b>',
+          '🔗 <b>Personal SMS Webhook Guide</b>',
           '',
-          'To receive SMS notifications from your <b>own</b> carrier or VoIP provider (such as Twilio, Telnyx, or Vonage) inside this private chat:',
+          'A real SMS connection requires a provider or phone system that you own or are authorized to manage.',
+          'Configure that system to send permitted notifications to your private integration.',
           '',
-          `1. Use your private Telegram Chat ID: <code>${userId}</code>`,
-          '2. Configure your SMS provider webhook to forward only messages addressed to your verified number.',
-          '3. Never expose your <code>TELEGRAM_BOT_TOKEN</code> in client apps or public repositories.',
+          'Never expose your Telegram bot token or forward third-party account verification codes.',
         ].join('\n'),
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[{text: '⬅️ Back to My Account', callback_data: 'account:overview'}]],
-        },
       },
     });
     return actions;

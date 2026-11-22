@@ -1,0 +1,18 @@
+services:
+
+* type: web
+    name: free-number-hub
+    runtime: node
+    plan: free
+    buildCommand: npm install –include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+    * key: NODE_ENV
+        value: production
+    * key: TELEGRAM_MODE
+        value: webhook
+    * key: TELEGRAM_BOT_TOKEN
+        sync: false
+    * key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true

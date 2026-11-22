@@ -1,3 +1,4 @@
+
 export interface TelegramUser {
   id: number;
   is_bot?: boolean;
@@ -109,7 +110,12 @@ export interface CountrySpec {
   name: string;
   flag: string;
   dialCode: string;
-  region: 'North America' | 'Europe' | 'Asia-Pacific' | 'Latin America';
+  region:
+    | 'North America'
+    | 'Europe'
+    | 'Asia-Pacific'
+    | 'Latin America'
+    | 'Africa';
   e164Example: string;
   digitsHint: string;
   authorizedProviders: string[];
@@ -171,7 +177,8 @@ export type RegionFilter =
   | 'North America'
   | 'Europe'
   | 'Asia-Pacific'
-  | 'Latin America';
+  | 'Latin America'
+  | 'Africa';
 
 export interface BotButtonsMap {
   COUNTRIES: '🌍 Countries';

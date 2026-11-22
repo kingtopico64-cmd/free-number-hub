@@ -111,6 +111,7 @@ function buildAccountOverview(store: BotAccountStore, userId: number): {
 } {
   const session = store.getOrCreateSession(userId);
   const numbers = store.listAuthorizedNumbers(userId);
+  const demoCount = store.listDemoSms(userId).length;
 
   const listPreview =
     numbers.length === 0
@@ -127,6 +128,7 @@ function buildAccountOverview(store: BotAccountStore, userId: number): {
     `<b>User:</b> ${escapeHtml(session.firstName)}${session.username ? ` (@${escapeHtml(session.username)})` : ''}`,
     `<b>Telegram User ID:</b> <code>${userId}</code>`,
     `<b>Authorized Numbers:</b> ${numbers.length} / 10`,
+    `<b>Saved Demo Messages:</b> ${demoCount}`,
     '',
     '<b>Your Registered Numbers:</b>',
     listPreview,
@@ -143,6 +145,7 @@ function buildAccountOverview(store: BotAccountStore, userId: number): {
           {text: '📋 Manage Numbers', callback_data: 'account:list'},
         ],
         [{text: '📥 Demo SMS Inbox', callback_data: 'sms:demo'}],
+        [{text: '🗑️ Clear Demo History', callback_data: 'sms:clear'}],
       ],
     },
   };
@@ -159,6 +162,7 @@ function buildHelpText(): string {
     '• <code>/account</code> — View your account',
     '• <code>/addnumber</code> — Register your own number',
     '• <code>/demo</code> — View sample SMS messages',
+    '• <code>/inbox</code> — Open demo history',
     '• <code>/help</code> — Show this help',
     '• <code>/about</code> — About this bot',
     '• <code>/cancel</code> — Cancel registration',
@@ -180,26 +184,44 @@ function buildAboutText(): string {
   ].join('\n');
 }
 
-function buildDemoSmsMessage(): string {
+function buildDemoSmsMessage(
+  store: BotAccountStore,
+  userId: number,
+): string {
+  let messages = store.listDemoSms(userId);
+
+  if (messages.length === 0) {
+    store.addDemoSms(
+      userId,
+      'Demo Service',
+      'Your sample notification has been received successfully.',
+    );
+
+    store.addDemoSms(
+      userId,
+      'Test Alert',
+      'This is a test notification for your Free Number Hub inbox.',
+    );
+
+    messages = store.listDemoSms(userId);
+  }
+
   return [
     '📥 <b>Demo SMS Inbox</b>',
     '',
-    '<i>These are simulated examples, not real received messages.</i>',
+    '<i>These are simulated messages, not real received SMS.</i>',
     '',
+    ...messages.flatMap((item, index) => [
+      '━━━━━━━━━━━━━━',
+      `📩 <b>Message ${messages.length - index}</b>`,
+      `<b>Sender:</b> ${escapeHtml(item.sender)}`,
+      `<b>Message:</b> ${escapeHtml(item.message)}`,
+      `<b>Received:</b> ${escapeHtml(item.receivedAt)}`,
+      '<b>Status:</b> Demo only',
+      '',
+    ]),
     '━━━━━━━━━━━━━━',
-    '📩 <b>Sample message 1</b>',
-    '<b>Sender:</b> Demo Service',
-    '<b>Message:</b> Your sample notification has been received successfully.',
-    '<b>Status:</b> Demo only',
-    '',
-    '━━━━━━━━━━━━━━',
-    '📩 <b>Sample message 2</b>',
-    '<b>Sender:</b> Test Alert',
-    '<b>Message:</b> This is a test notification for your Free Number Hub inbox.',
-    '<b>Status:</b> Demo only',
-    '',
-    '━━━━━━━━━━━━━━',
-    '✅ Your demo inbox is working.',
+    `✅ Total saved demo messages: ${messages.length}`,
     '',
     'Real SMS messages are not connected yet.',
   ].join('\n');
@@ -278,7 +300,7 @@ export function handleBotUpdate(
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: buildDemoSmsMessage(),
+        text: buildDemoSmsMessage(store, userId),
         parse_mode: 'HTML',
       },
     }];
@@ -516,8 +538,27 @@ function handleCallbackQuery(
       type: 'sendMessage',
       payload: {
         chat_id: chatId,
-        text: buildDemoSmsMessage(),
+        text: buildDemoSmsMessage(store, userId),
         parse_mode: 'HTML',
+      },
+    });
+    return actions;
+  }
+
+  if (data === 'sms:clear') {
+    store.clearDemoSms(userId);
+    actions.push({
+      type: 'sendMessage',
+      payload: {
+        chat_id: chatId,
+        text: '🗑️ Your demo SMS history has been cleared.',
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{text: '📥 Open Demo SMS Inbox', callback_data: 'sms:demo'}],
+            [{text: '👤 My Account', callback_data: 'account:overview'}],
+          ],
+        },
       },
     });
     return actions;

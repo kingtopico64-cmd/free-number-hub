@@ -1,4 +1,3 @@
-
 import crypto from 'node:crypto';
 import {COUNTRIES} from './botData.ts';
 import type {AuthorizedNumberRecord, RegistrationStep, UserSessionState} from './types.ts';
@@ -12,6 +11,13 @@ export interface DemoSmsRecord {
   receivedAt: string;
 }
 
+export interface PersonalNotificationRecord {
+  id: string;
+  sender: string;
+  message: string;
+  createdAt: string;
+}
+
 export function validateE164PhoneNumber(
   raw: string,
   expectedCountryCode?: string,
@@ -21,8 +27,7 @@ export function validateE164PhoneNumber(
     return {
       valid: false,
       normalized,
-      reason:
-        'Please enter a valid international E.164 number starting with + and country code (e.g., +14155550199).',
+      reason: 'Please enter a valid international E.164 number starting with + and country code (e.g., +14155550199).',
     };
   }
 
@@ -43,6 +48,7 @@ export function validateE164PhoneNumber(
 export class BotAccountStore {
   private readonly sessions = new Map<number, UserSessionState>();
   private readonly demoMessages = new Map<number, DemoSmsRecord[]>();
+  private readonly personalNotifications = new Map<number, PersonalNotificationRecord[]>();
 
   getOrCreateSession(userId: number, firstName = 'User', username?: string): UserSessionState {
     const existing = this.sessions.get(userId);
@@ -68,11 +74,7 @@ export class BotAccountStore {
     return created;
   }
 
-  addDemoSms(
-    userId: number,
-    sender: string,
-    message: string,
-  ): DemoSmsRecord {
+  addDemoSms(userId: number, sender: string, message: string): DemoSmsRecord {
     this.getOrCreateSession(userId);
 
     const record: DemoSmsRecord = {
@@ -85,7 +87,6 @@ export class BotAccountStore {
     const history = this.demoMessages.get(userId) ?? [];
     history.unshift(record);
     this.demoMessages.set(userId, history.slice(0, 50));
-
     return record;
   }
 
@@ -95,6 +96,34 @@ export class BotAccountStore {
 
   clearDemoSms(userId: number): void {
     this.demoMessages.delete(userId);
+  }
+
+  addPersonalNotification(
+    userId: number,
+    sender: string,
+    message: string,
+  ): PersonalNotificationRecord {
+    this.getOrCreateSession(userId);
+
+    const record: PersonalNotificationRecord = {
+      id: crypto.randomUUID().slice(0, 8),
+      sender: sender.trim().slice(0, 80) || 'Personal note',
+      message: message.trim().slice(0, 500),
+      createdAt: new Date().toISOString(),
+    };
+
+    const history = this.personalNotifications.get(userId) ?? [];
+    history.unshift(record);
+    this.personalNotifications.set(userId, history.slice(0, 50));
+    return record;
+  }
+
+  listPersonalNotifications(userId: number): PersonalNotificationRecord[] {
+    return [...(this.personalNotifications.get(userId) ?? [])];
+  }
+
+  clearPersonalNotifications(userId: number): void {
+    this.personalNotifications.delete(userId);
   }
 
   setRegistrationState(
@@ -108,6 +137,7 @@ export class BotAccountStore {
   ): UserSessionState {
     const session = this.getOrCreateSession(userId);
     session.registrationStep = step;
+
     if (patch?.pendingCountryCode !== undefined) {
       session.pendingCountryCode = patch.pendingCountryCode;
     }
@@ -117,11 +147,13 @@ export class BotAccountStore {
     if (patch?.pendingLabel !== undefined) {
       session.pendingLabel = patch.pendingLabel;
     }
+
     if (step === 'idle') {
       session.pendingCountryCode = undefined;
       session.pendingPhoneNumber = undefined;
       session.pendingLabel = undefined;
     }
+
     return session;
   }
 
@@ -146,6 +178,7 @@ export class BotAccountStore {
 
     const session = this.getOrCreateSession(userId);
     const duplicate = session.numbers.some((item) => item.phoneNumber === check.normalized);
+
     if (duplicate) {
       return {ok: false, error: 'This number is already registered in your account.'};
     }
@@ -181,14 +214,17 @@ export class BotAccountStore {
   removeAuthorizedNumber(userId: number, recordId: string): boolean {
     const session = this.getOrCreateSession(userId);
     const before = session.numbers.length;
+
     session.numbers = session.numbers.filter(
       (item) => !(item.id === recordId && item.userId === userId),
     );
+
     return session.numbers.length < before;
   }
 
   resetUserSession(userId: number): void {
     this.sessions.delete(userId);
     this.demoMessages.delete(userId);
+    this.personalNotifications.delete(userId);
   }
 }
